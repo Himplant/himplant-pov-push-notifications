@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes"
+    />
+    <title>Himplant Admin Dashboard</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px 16px;
+        background-color: #ffffff;
+        color: #1a1a1a;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      .dashboard-header {
+        margin-bottom: 32px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #e5e5e5;
+      }
+
+      .dashboard-header h1 {
+        font-size: 24px;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 6px;
+        line-height: 1.3;
+      }
+
+      .dashboard-header p {
+        color: #666;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #333;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      input[type="text"],
+      textarea {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 16px;
+        font-family: inherit;
+        background-color: #fff;
+        transition: border-color 0.2s;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      input:focus,
+      textarea:focus {
+        outline: none;
+        border-color: #1a1a1a;
+      }
+
+      textarea {
+        min-height: 100px;
+        resize: vertical;
+      }
+
+      .help-text {
+        font-size: 13px;
+        color: #888;
+        margin-top: 6px;
+        line-height: 1.4;
+      }
+
+      button {
+        background-color: #1a1a1a;
+        color: white;
+        padding: 14px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.1s;
+        font-family: inherit;
+        width: 100%;
+        min-height: 48px;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      button:active:not(:disabled) {
+        transform: scale(0.98);
+      }
+
+      button:hover:not(:disabled) {
+        background-color: #333;
+      }
+
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .result {
+        margin-top: 20px;
+        padding: 14px 16px;
+        border-radius: 6px;
+        display: none;
+        font-size: 14px;
+        line-height: 1.5;
+        word-wrap: break-word;
+      }
+
+      .success {
+        background-color: #f0f9f4;
+        color: #166534;
+        border: 1px solid #d1fae5;
+      }
+
+      .error {
+        background-color: #fef2f2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+      }
+
+      .loading {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Tablet and Desktop Styles */
+      @media (min-width: 768px) {
+        body {
+          padding: 40px 24px;
+        }
+
+        .dashboard-header {
+          margin-bottom: 40px;
+          padding-bottom: 20px;
+        }
+
+        .dashboard-header h1 {
+          font-size: 32px;
+          margin-bottom: 8px;
+        }
+
+        .form-group {
+          margin-bottom: 24px;
+        }
+
+        input[type="text"],
+        textarea {
+          padding: 10px 12px;
+          font-size: 14px;
+        }
+
+        textarea {
+          min-height: 80px;
+        }
+
+        button {
+          padding: 12px 24px;
+          font-size: 14px;
+          min-height: auto;
+        }
+
+        .result {
+          padding: 12px 16px;
+        }
+      }
+
+      /* Large Desktop Styles */
+      @media (min-width: 1024px) {
+        body {
+          padding: 40px 20px;
+        }
+      }
+
+      /* Prevent iOS zoom on input focus */
+      @media screen and (max-width: 767px) {
+        input[type="text"],
+        textarea,
+        select {
+          font-size: 16px !important;
+        }
+      }
+
+      /* Better touch targets for mobile */
+      @media (max-width: 767px) {
+        .form-group {
+          margin-bottom: 24px;
+        }
+
+        label {
+          font-size: 15px;
+          margin-bottom: 10px;
+        }
+
+        .dashboard-header h1 {
+          font-size: 28px;
+        }
+      }
+
+      /* Landscape mobile optimization */
+      @media screen and (max-width: 767px) and (orientation: landscape) {
+        body {
+          padding: 16px;
+        }
+
+        .dashboard-header {
+          margin-bottom: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dashboard-header">
+      <h1>Himplant Admin Dashboard</h1>
+      <p>Send push notifications to users</p>
+    </div>
+
+    <form id="notificationForm">
+      <div class="form-group">
+        <label for="title">Notification Title *</label>
+        <input
+          type="text"
+          id="title"
+          required
+          placeholder="e.g., New Feature Available"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="body">Notification Message *</label>
+        <textarea
+          id="body"
+          required
+          placeholder="e.g., Check out our latest update with improved image processing!"
+        ></textarea>
+      </div>
+
+      <button
+        type="submit"
+        id="sendButton"
+      >
+        Send Notification
+      </button>
+    </form>
+
+    <div
+      id="result"
+      class="result"
+    ></div>
+
+    <script>
+      // Supabase configuration - Update these with your actual values
+      const SUPABASE_URL = "https://nfoeswlppebvxaomfnsk.supabase.co";
+      const SUPABASE_ANON_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mb2Vzd2xwcGVidnhhb21mbnNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3MzA2NDAsImV4cCI6MjA2MjMwNjY0MH0.0xLSHdiD4ygqMsj_63BEyiqWMUQwZtAWXZrarp7x_AA";
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById("notificationForm");
+        const resultDiv = document.getElementById("result");
+        const sendButton = document.getElementById("sendButton");
+
+        form.addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const title = document.getElementById("title").value.trim();
+          const body = document.getElementById("body").value.trim();
+
+          if (!title || !body) {
+            showResult("Please fill in both title and message.", "error");
+            return;
+          }
+
+          // Prepare payload - always send to all users
+          const payload = {
+            title,
+            body,
+          };
+
+          // Show loading state
+          sendButton.disabled = true;
+          sendButton.innerHTML = '<div class="loading"></div>Sending...';
+
+          try {
+            const response = await fetch(`${SUPABASE_URL}/functions/v1/send-push-notification`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+                apikey: SUPABASE_ANON_KEY,
+              },
+              body: JSON.stringify(payload),
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+              const { sent, failed, total } = result;
+              showResult(
+                `Notification sent successfully! ${sent}/${total} notifications delivered.${
+                  failed > 0 ? ` ${failed} failed.` : ""
+                }`,
+                "success"
+              );
+
+              // Reset form
+              form.reset();
+            } else {
+              showResult(`Error: ${result.error || "Unknown error"}`, "error");
+            }
+          } catch (error) {
+            console.error("Network error:", error);
+            showResult("Network error. Please check your connection and try again.", "error");
+          } finally {
+            // Reset button state
+            sendButton.disabled = false;
+            sendButton.innerHTML = "Send Notification";
+          }
+        });
+
+        function showResult(message, type) {
+          resultDiv.textContent = message;
+          resultDiv.className = `result ${type}`;
+          resultDiv.style.display = "block";
+
+          // Auto-hide success messages after 10 seconds
+          if (type === "success") {
+            setTimeout(() => {
+              resultDiv.style.display = "none";
+            }, 10000);
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
