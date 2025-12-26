@@ -84,6 +84,45 @@
         resize: vertical;
       }
 
+      .checkbox-group {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 14px 16px;
+        background-color: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+      }
+
+      .checkbox-group input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        margin-top: 2px;
+        cursor: pointer;
+        accent-color: #1a1a1a;
+        flex-shrink: 0;
+      }
+
+      .checkbox-label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        cursor: pointer;
+      }
+
+      .checkbox-label .label-title {
+        font-weight: 500;
+        color: #333;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+
+      .checkbox-label .label-description {
+        font-size: 13px;
+        color: #666;
+        line-height: 1.4;
+      }
+
       .help-text {
         font-size: 13px;
         color: #888;
@@ -276,6 +315,21 @@
         ></textarea>
       </div>
 
+      <div class="form-group">
+        <label>Target Audience (Optional)</label>
+        <div class="checkbox-group">
+          <input
+            type="checkbox"
+            id="incompleteOnly"
+            name="incompleteOnly"
+          />
+          <label for="incompleteOnly" class="checkbox-label">
+            <span class="label-title">Only users who haven't completed the questionnaire</span>
+            <span class="label-description">Send only to users who haven't clicked "Find out if you're eligible" yet</span>
+          </label>
+        </div>
+      </div>
+
       <button
         type="submit"
         id="sendButton"
@@ -305,17 +359,23 @@
 
           const title = document.getElementById("title").value.trim();
           const body = document.getElementById("body").value.trim();
+          const incompleteOnly = document.getElementById("incompleteOnly").checked;
 
           if (!title || !body) {
             showResult("Please fill in both title and message.", "error");
             return;
           }
 
-          // Prepare payload - always send to all users
+          // Prepare payload
           const payload = {
             title,
             body,
           };
+
+          // Add filter if checkbox is checked
+          if (incompleteOnly) {
+            payload.onlyIncompleteQuestionnaire = true;
+          }
 
           // Show loading state
           sendButton.disabled = true;
@@ -336,8 +396,9 @@
 
             if (response.ok) {
               const { sent, failed, total } = result;
+              const filterNote = incompleteOnly ? " (filtered: questionnaire incomplete)" : "";
               showResult(
-                `Notification sent successfully! ${sent}/${total} notifications delivered.${
+                `Notification sent successfully! ${sent}/${total} notifications delivered${filterNote}.${
                   failed > 0 ? ` ${failed} failed.` : ""
                 }`,
                 "success"
