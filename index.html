@@ -60,7 +60,8 @@
       }
 
       input[type="text"],
-      textarea {
+      textarea,
+      select {
         width: 100%;
         padding: 12px 14px;
         border: 1px solid #e0e0e0;
@@ -82,6 +83,10 @@
       textarea {
         min-height: 100px;
         resize: vertical;
+      }
+
+      .hidden {
+        display: none;
       }
 
       .checkbox-group {
@@ -316,7 +321,42 @@
       </div>
 
       <div class="form-group">
-        <label>Target Audience (Optional)</label>
+        <label for="targetMode">Who should receive this notification?</label>
+        <select id="targetMode">
+          <option value="all">Everyone</option>
+          <option value="me">Me only</option>
+          <option value="specific">Specific users</option>
+        </select>
+        <p class="help-text">Choose whether to notify all users, just yourself, or a custom user list.</p>
+      </div>
+
+      <div
+        class="form-group hidden"
+        id="selfTargetGroup"
+      >
+        <label for="selfUserEmail">Your Email *</label>
+        <input
+          type="text"
+          id="selfUserEmail"
+          placeholder="e.g., yourname@example.com"
+        />
+        <p class="help-text">Used when "Me only" is selected.</p>
+      </div>
+
+      <div
+        class="form-group hidden"
+        id="specificTargetGroup"
+      >
+        <label for="targetUserEmails">Specific User Emails *</label>
+        <textarea
+          id="targetUserEmails"
+          placeholder="Enter user emails separated by commas or new lines"
+        ></textarea>
+        <p class="help-text">Example: user1@example.com, user2@example.com or one email per line.</p>
+      </div>
+
+      <div class="form-group">
+        <label>Additional Filters (Optional)</label>
         <div class="checkbox-group">
           <input
             type="checkbox"
@@ -353,17 +393,73 @@
         const form = document.getElementById("notificationForm");
         const resultDiv = document.getElementById("result");
         const sendButton = document.getElementById("sendButton");
+        const targetModeSelect = document.getElementById("targetMode");
+        const selfTargetGroup = document.getElementById("selfTargetGroup");
+        const specificTargetGroup = document.getElementById("specificTargetGroup");
+        const selfUserEmailInput = document.getElementById("selfUserEmail");
+        const targetUserEmailsInput = document.getElementById("targetUserEmails");
+
+        function isValidEmail(email) {
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        function updateTargetFields() {
+          const mode = targetModeSelect.value;
+          const isMeMode = mode === "me";
+          const isSpecificMode = mode === "specific";
+
+          selfTargetGroup.classList.toggle("hidden", !isMeMode);
+          specificTargetGroup.classList.toggle("hidden", !isSpecificMode);
+
+          selfUserEmailInput.required = isMeMode;
+          targetUserEmailsInput.required = isSpecificMode;
+        }
+
+        targetModeSelect.addEventListener("change", updateTargetFields);
+        updateTargetFields();
 
         form.addEventListener("submit", async function (e) {
           e.preventDefault();
 
           const title = document.getElementById("title").value.trim();
           const body = document.getElementById("body").value.trim();
+          const targetMode = targetModeSelect.value;
+          const selfUserEmail = selfUserEmailInput.value.trim().toLowerCase();
+          const rawTargetUserEmails = targetUserEmailsInput.value;
           const incompleteOnly = document.getElementById("incompleteOnly").checked;
+          let targetEmails = [];
 
           if (!title || !body) {
             showResult("Please fill in both title and message.", "error");
             return;
+          }
+
+          if (targetMode === "me") {
+            if (!selfUserEmail) {
+              showResult('Please provide your email for "Me only" mode.', "error");
+              return;
+            }
+            if (!isValidEmail(selfUserEmail)) {
+              showResult("Please enter a valid email address for Me only mode.", "error");
+              return;
+            }
+            targetEmails = [selfUserEmail];
+          } else if (targetMode === "specific") {
+            targetEmails = rawTargetUserEmails
+              .split(/[\n,;]/)
+              .map((email) => email.trim().toLowerCase())
+              .filter(Boolean);
+
+            if (targetEmails.length === 0) {
+              showResult("Please add at least one email for specific targeting.", "error");
+              return;
+            }
+
+            const invalidEmails = targetEmails.filter((email) => !isValidEmail(email));
+            if (invalidEmails.length > 0) {
+              showResult(`Please fix invalid email(s): ${invalidEmails.join(", ")}`, "error");
+              return;
+            }
           }
 
           // Prepare payload
@@ -371,6 +467,10 @@
             title,
             body,
           };
+
+          if (targetEmails.length > 0) {
+            payload.targetEmails = targetEmails;
+          }
 
           // Add filter if checkbox is checked
           if (incompleteOnly) {
@@ -396,16 +496,23 @@
 
             if (response.ok) {
               const { sent, failed, total } = result;
+              const recipientNote =
+                targetMode === "me"
+                  ? " (targeted: you only)"
+                  : targetMode === "specific"
+                    ? ` (targeted: ${targetEmails.length} selected user${
+                        targetEmails.length > 1 ? "s" : ""
+                      })`
+                    : "";
               const filterNote = incompleteOnly ? " (filtered: questionnaire incomplete)" : "";
               showResult(
-                `Notification sent successfully! ${sent}/${total} notifications delivered${filterNote}.${
-                  failed > 0 ? ` ${failed} failed.` : ""
-                }`,
+                `Notification sent successfully! ${sent}/${total} notifications delivered${recipientNote}${filterNote}.${failed > 0 ? ` ${failed} failed.` : ""}`,
                 "success"
               );
 
               // Reset form
               form.reset();
+              updateTargetFields();
             } else {
               showResult(`Error: ${result.error || "Unknown error"}`, "error");
             }

@@ -5,7 +5,9 @@ A simple web interface for sending push notifications to Himplant app users.
 ## 🚀 Features
 
 - Send push notifications to all users
-- Target specific users with custom messages
+- Send notifications to yourself only (single email target)
+- Send notifications to specific users (comma/newline separated emails)
+- Optional filter: only users with incomplete questionnaire
 - Real-time delivery status
 - Clean, professional interface
 
@@ -15,7 +17,11 @@ A simple web interface for sending push notifications to Himplant app users.
 2. Fill in the notification details:
    - **Title**: Notification headline
    - **Message**: Notification body text
-   - **Target**: Choose "All Users" or "Specific Users"
+   - **Who should receive this**:
+     - `Everyone`
+     - `Me only` (requires your email)
+     - `Specific users` (paste one or more user emails)
+   - **Additional filter (optional)**: limit to users with incomplete questionnaire
 3. Click "Send Notification"
 4. View delivery results
 
