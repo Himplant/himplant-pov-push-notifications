@@ -295,6 +295,22 @@
     </style>
   </head>
   <body>
+    <div id="gate">
+      <div class="dashboard-header">
+        <h1>Himplant Admin Dashboard</h1>
+        <p>Enter the passcode to continue</p>
+      </div>
+      <form id="gateForm">
+        <div class="form-group">
+          <label for="passcode">Passcode</label>
+          <input type="password" id="passcode" inputmode="numeric" autocomplete="off" required />
+        </div>
+        <button type="submit">Continue</button>
+      </form>
+      <div id="gateResult" class="result"></div>
+    </div>
+
+    <div id="app" class="hidden">
     <div class="dashboard-header">
       <h1>Himplant Admin Dashboard</h1>
       <p>Send push notifications to users</p>
@@ -321,38 +337,8 @@
       </div>
 
       <div class="form-group">
-        <label for="targetMode">Who should receive this notification?</label>
-        <select id="targetMode">
-          <option value="all">Everyone</option>
-          <option value="me">Me only</option>
-          <option value="specific">Specific users</option>
-        </select>
-        <p class="help-text">Choose whether to notify all users, just yourself, or a custom user list.</p>
-      </div>
-
-      <div
-        class="form-group hidden"
-        id="selfTargetGroup"
-      >
-        <label for="selfUserEmail">Your Email *</label>
-        <input
-          type="text"
-          id="selfUserEmail"
-          placeholder="e.g., yourname@example.com"
-        />
-        <p class="help-text">Used when "Me only" is selected.</p>
-      </div>
-
-      <div
-        class="form-group hidden"
-        id="specificTargetGroup"
-      >
-        <label for="targetUserEmails">Specific User Emails *</label>
-        <textarea
-          id="targetUserEmails"
-          placeholder="Enter user emails separated by commas or new lines"
-        ></textarea>
-        <p class="help-text">Example: user1@example.com, user2@example.com or one email per line.</p>
+        <label>Who receives this notification</label>
+        <p class="help-text">Everyone who has notifications turned on. Use the filter below to narrow it.</p>
       </div>
 
       <div class="form-group">
@@ -382,6 +368,7 @@
       id="result"
       class="result"
     ></div>
+    </div>
 
     <script>
       // Supabase configuration - Update these with your actual values
@@ -389,77 +376,56 @@
       const SUPABASE_ANON_KEY =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5mb2Vzd2xwcGVidnhhb21mbnNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY3MzA2NDAsImV4cCI6MjA2MjMwNjY0MH0.0xLSHdiD4ygqMsj_63BEyiqWMUQwZtAWXZrarp7x_AA";
 
+      // Passcode screen. This keeps casual visitors out; it is not strong security.
+      const PASSCODE_SHA256 = "605e9e90d5370dfd14f2b61f34cbc58c2c9cf5686160cc483a0c5a4b4f421fc9";
+      async function sha256(text) {
+        const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+        return Array.from(new Uint8Array(bytes)).map((b) => b.toString(16).padStart(2, "0")).join("");
+      }
+      function unlock() {
+        document.getElementById("gate").classList.add("hidden");
+        document.getElementById("app").classList.remove("hidden");
+      }
+
       document.addEventListener("DOMContentLoaded", function () {
+        let unlocked = false;
+        try { unlocked = sessionStorage.getItem("himplant_push_unlocked") === "1"; } catch (e) {}
+        if (unlocked) unlock();
+        document.getElementById("gateForm").addEventListener("submit", async function (e) {
+          e.preventDefault();
+          const input = document.getElementById("passcode");
+          if ((await sha256(input.value.trim())) === PASSCODE_SHA256) {
+            try { sessionStorage.setItem("himplant_push_unlocked", "1"); } catch (e) {}
+            unlock();
+          } else {
+            const gateResult = document.getElementById("gateResult");
+            gateResult.textContent = "Wrong passcode.";
+            gateResult.className = "result error";
+            gateResult.style.display = "block";
+            input.value = "";
+          }
+        });
+
         const form = document.getElementById("notificationForm");
         const resultDiv = document.getElementById("result");
         const sendButton = document.getElementById("sendButton");
-        const targetModeSelect = document.getElementById("targetMode");
-        const selfTargetGroup = document.getElementById("selfTargetGroup");
-        const specificTargetGroup = document.getElementById("specificTargetGroup");
-        const selfUserEmailInput = document.getElementById("selfUserEmail");
-        const targetUserEmailsInput = document.getElementById("targetUserEmails");
-
-        function isValidEmail(email) {
-          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-        }
-
-        function updateTargetFields() {
-          const mode = targetModeSelect.value;
-          const isMeMode = mode === "me";
-          const isSpecificMode = mode === "specific";
-
-          selfTargetGroup.classList.toggle("hidden", !isMeMode);
-          specificTargetGroup.classList.toggle("hidden", !isSpecificMode);
-
-          selfUserEmailInput.required = isMeMode;
-          targetUserEmailsInput.required = isSpecificMode;
-        }
-
-        targetModeSelect.addEventListener("change", updateTargetFields);
-        updateTargetFields();
-
         form.addEventListener("submit", async function (e) {
           e.preventDefault();
 
           const title = document.getElementById("title").value.trim();
           const body = document.getElementById("body").value.trim();
-          const targetMode = targetModeSelect.value;
-          const selfUserEmail = selfUserEmailInput.value.trim().toLowerCase();
-          const rawTargetUserEmails = targetUserEmailsInput.value;
           const incompleteOnly = document.getElementById("incompleteOnly").checked;
-          let targetEmails = [];
 
           if (!title || !body) {
             showResult("Please fill in both title and message.", "error");
             return;
           }
 
-          if (targetMode === "me") {
-            if (!selfUserEmail) {
-              showResult('Please provide your email for "Me only" mode.', "error");
-              return;
-            }
-            if (!isValidEmail(selfUserEmail)) {
-              showResult("Please enter a valid email address for Me only mode.", "error");
-              return;
-            }
-            targetEmails = [selfUserEmail];
-          } else if (targetMode === "specific") {
-            targetEmails = rawTargetUserEmails
-              .split(/[\n,;]/)
-              .map((email) => email.trim().toLowerCase())
-              .filter(Boolean);
-
-            if (targetEmails.length === 0) {
-              showResult("Please add at least one email for specific targeting.", "error");
-              return;
-            }
-
-            const invalidEmails = targetEmails.filter((email) => !isValidEmail(email));
-            if (invalidEmails.length > 0) {
-              showResult(`Please fix invalid email(s): ${invalidEmails.join(", ")}`, "error");
-              return;
-            }
+          const audience = incompleteOnly
+            ? "everyone who has not completed the questionnaire"
+            : "EVERYONE";
+          if (!window.confirm(`Send this notification to ${audience}? This cannot be undone.`)) {
+            return;
           }
 
           // Prepare payload
@@ -467,10 +433,6 @@
             title,
             body,
           };
-
-          if (targetEmails.length > 0) {
-            payload.targetEmails = targetEmails;
-          }
 
           // Add filter if checkbox is checked
           if (incompleteOnly) {
@@ -496,23 +458,14 @@
 
             if (response.ok) {
               const { sent, failed, total } = result;
-              const recipientNote =
-                targetMode === "me"
-                  ? " (targeted: you only)"
-                  : targetMode === "specific"
-                    ? ` (targeted: ${targetEmails.length} selected user${
-                        targetEmails.length > 1 ? "s" : ""
-                      })`
-                    : "";
               const filterNote = incompleteOnly ? " (filtered: questionnaire incomplete)" : "";
               showResult(
-                `Notification sent successfully! ${sent}/${total} notifications delivered${recipientNote}${filterNote}.${failed > 0 ? ` ${failed} failed.` : ""}`,
+                `Notification sent successfully! ${sent}/${total} notifications delivered${filterNote}.${failed > 0 ? ` ${failed} failed.` : ""}`,
                 "success"
               );
 
               // Reset form
               form.reset();
-              updateTargetFields();
             } else {
               showResult(`Error: ${result.error || "Unknown error"}`, "error");
             }
